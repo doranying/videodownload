@@ -1,0 +1,5 @@
+node_modules/
+.venv/
+downloads/
+.DS_Store
+npm-debug.log*

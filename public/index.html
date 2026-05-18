@@ -1,0 +1,63 @@
+<!doctype html>
+<html lang="zh-CN">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>YouTube 视频与字幕下载</title>
+    <link rel="stylesheet" href="/styles.css" />
+  </head>
+  <body>
+    <main class="shell">
+      <section class="workspace">
+        <header class="topbar">
+          <div>
+            <h1>YouTube 视频与外挂字幕下载</h1>
+            <p>输入公开视频链接，保存视频文件和独立字幕文件。</p>
+          </div>
+          <span id="status" class="status">检查工具中</span>
+        </header>
+
+        <form id="downloadForm" class="panel">
+          <label class="field fieldWide">
+            <span>YouTube 链接</span>
+            <input id="url" type="url" placeholder="https://www.youtube.com/watch?v=..." required />
+          </label>
+
+          <div class="controls">
+            <button class="secondary" type="button" id="fetchInfo">读取字幕</button>
+            <label class="field">
+              <span>字幕语言</span>
+              <select id="language">
+                <option value="zh-Hans">中文简体 zh-Hans</option>
+                <option value="zh-Hant">中文繁体 zh-Hant</option>
+                <option value="en">英文 en</option>
+                <option value="ko">韩文 ko</option>
+                <option value="ko-orig">韩文原文 ko-orig</option>
+                <option value="ja">日文 ja</option>
+              </select>
+            </label>
+            <label class="field">
+              <span>字幕格式</span>
+              <select id="subtitleFormat">
+                <option value="srt">SRT</option>
+                <option value="vtt">VTT</option>
+              </select>
+            </label>
+          </div>
+
+          <div class="options">
+            <label><input id="useAutoCaptions" type="checkbox" checked /> 没有官方字幕时使用自动字幕</label>
+            <label><input id="subtitleOnly" type="checkbox" /> 只下载外挂字幕</label>
+          </div>
+
+          <button class="primary" type="submit">开始下载</button>
+        </form>
+
+        <section class="result" id="videoInfo" hidden></section>
+        <section class="result" id="result" hidden></section>
+      </section>
+    </main>
+
+    <script src="/app.js"></script>
+  </body>
+</html>
