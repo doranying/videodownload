@@ -233,6 +233,12 @@ async function getOcrWorker(job) {
         }
       }
     });
+    if (usesKoreanOcr(job.language)) {
+      await job.worker.setParameters({
+        tessedit_pageseg_mode: "7",
+        preserve_interword_spaces: "1"
+      });
+    }
   }
   throwIfCancelled(job);
   return job.worker;
@@ -250,7 +256,7 @@ async function recognizeCurrentFrame(job) {
   throwIfCancelled(job);
   const result = await worker.recognize(canvas);
   throwIfCancelled(job);
-  return cleanOcrText(result.data.text);
+  return cleanOcrText(result.data.text, job.language);
 }
 
 async function buildOcrCues(job) {
@@ -373,8 +379,8 @@ function seekVideo(time) {
   });
 }
 
-function cleanOcrText(text) {
-  return text
+function cleanOcrText(text, language) {
+  const cleaned = text
     .replace(/\r/g, "")
     .split("\n")
     .map((line) => line.replace(/\s+/g, " ").trim())
@@ -382,6 +388,32 @@ function cleanOcrText(text) {
     .join("\n")
     .replace(/[|＿_]{2,}/g, "")
     .trim();
+
+  if (!usesKoreanOcr(language)) return cleaned;
+
+  return cleaned
+    .split("\n")
+    .map(cleanKoreanOcrLine)
+    .filter((line) => /[가-힣]/.test(line))
+    .join("\n")
+    .trim();
+}
+
+function usesKoreanOcr(language) {
+  return language.split("+").includes("kor");
+}
+
+function cleanKoreanOcrLine(line) {
+  const normalized = line
+    .replace(/[^\uAC00-\uD7A3\u3131-\u318E0-9A-Za-z .,?!'"()~\-]/g, " ")
+    .replace(/\b[A-Za-z]{1,2}\b/g, " ")
+    .replace(/\s+/g, " ")
+    .trim();
+
+  const firstKorean = normalized.search(/[가-힣]/);
+  if (firstKorean === -1) return "";
+  const lastKorean = Math.max(...[...normalized.matchAll(/[가-힣]/g)].map((match) => match.index));
+  return normalized.slice(firstKorean, lastKorean + 1).trim();
 }
 
 function mergeCues(cues, interval) {
