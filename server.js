@@ -9,7 +9,7 @@ const app = express();
 const port = process.env.PORT || 4173;
 const downloadsDir = path.join(__dirname, "downloads");
 const ytDlpBin = path.join(__dirname, ".venv", "bin", "yt-dlp");
-const youtubeExtractorArgs = "youtube:player_client=android";
+const youtubeExtractorArgs = "youtube:player_client=tv";
 const cookiePath =
   process.env.YOUTUBE_COOKIES_PATH || path.join(__dirname, "cookies", "youtube.txt");
 
