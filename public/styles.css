@@ -71,6 +71,54 @@ p {
   border-color: #b9ddd5;
 }
 
+.backLink {
+  display: inline-flex;
+  margin-bottom: 10px;
+  color: var(--accent);
+  text-decoration: none;
+  font-weight: 700;
+}
+
+.homeGrid {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 18px;
+}
+
+.toolCard {
+  display: grid;
+  gap: 10px;
+  min-height: 220px;
+  align-content: start;
+  padding: 22px;
+  border: 1px solid var(--line);
+  border-radius: 8px;
+  background: var(--panel);
+  color: var(--text);
+  text-decoration: none;
+}
+
+.toolCard:hover {
+  border-color: #b9ddd5;
+  background: #fbfdfb;
+}
+
+.toolCard span {
+  width: max-content;
+  padding: 6px 10px;
+  border-radius: 999px;
+  background: var(--soft);
+  color: var(--accent);
+  font-size: 14px;
+  font-weight: 700;
+}
+
+.toolCard h2 {
+  margin: 0;
+  font-size: 26px;
+  line-height: 1.15;
+}
+
 .panel,
 .result {
   background: var(--panel);
@@ -357,7 +405,8 @@ button:disabled {
   }
 
   .topbar,
-  .videoCard {
+  .videoCard,
+  .homeGrid {
     grid-template-columns: 1fr;
     display: grid;
   }

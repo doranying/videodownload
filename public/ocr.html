@@ -1,0 +1,78 @@
+<!doctype html>
+<html lang="zh-CN">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>画面字幕 OCR 提取</title>
+    <link rel="stylesheet" href="/styles.css" />
+  </head>
+  <body>
+    <main class="shell">
+      <section class="workspace">
+        <header class="topbar">
+          <div>
+            <a class="backLink" href="/">返回首页</a>
+            <h1>画面字幕 OCR 提取</h1>
+            <p>播放本地视频，框选字幕区域，只识别指定位置并整理成 SRT。</p>
+          </div>
+          <span id="status" class="status ready">OCR 就绪</span>
+        </header>
+
+        <section class="panel ocrPanel">
+          <div class="ocrGrid">
+            <label class="field fieldWide">
+              <span>本地视频</span>
+              <input id="ocrVideoFile" type="file" accept="video/*" />
+            </label>
+            <label class="field">
+              <span>识别语言</span>
+              <select id="ocrLanguage">
+                <option value="kor+chi_sim+eng">韩文 + 简体中文 + 英文</option>
+                <option value="chi_sim+eng">简体中文 + 英文</option>
+                <option value="kor+eng">韩文 + 英文</option>
+                <option value="eng">英文</option>
+              </select>
+            </label>
+            <label class="field">
+              <span>识别间隔</span>
+              <select id="ocrInterval">
+                <option value="1">1 秒</option>
+                <option value="1.5">1.5 秒</option>
+                <option value="2">2 秒</option>
+                <option value="3">3 秒</option>
+              </select>
+            </label>
+            <label class="field">
+              <span>结束时间</span>
+              <input id="ocrEndTime" type="number" min="1" step="1" placeholder="默认全片" />
+            </label>
+          </div>
+
+          <div class="videoPicker">
+            <video id="ocrVideo" controls muted playsinline></video>
+            <canvas id="ocrOverlay"></canvas>
+          </div>
+
+          <div class="ocrPreviewBar">
+            <button class="secondary" type="button" id="ocrBack10">后退 10 秒</button>
+            <button class="secondary" type="button" id="ocrForward10">前进 10 秒</button>
+            <button class="secondary" type="button" id="ocrSelectMode">框选字幕区域</button>
+            <span id="ocrTimeReadout">00:00 / 00:00</span>
+          </div>
+
+          <div class="ocrActions">
+            <button class="secondary" type="button" id="ocrPreview">预览识别</button>
+            <button class="primary compactPrimary" type="button" id="ocrStart">生成 OCR 字幕</button>
+            <button class="danger" type="button" id="ocrCancel" disabled>取消 OCR</button>
+          </div>
+
+          <div class="ocrOutput" id="ocrOutput" hidden></div>
+        </section>
+      </section>
+    </main>
+
+    <script src="https://cdn.jsdelivr.net/npm/tesseract.js@5/dist/tesseract.min.js"></script>
+    <script src="/shared.js"></script>
+    <script src="/ocr.js"></script>
+  </body>
+</html>

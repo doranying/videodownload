@@ -3,7 +3,7 @@
   <head>
     <meta charset="UTF-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-    <title>YouTube 视频与字幕下载</title>
+    <title>视频字幕工具</title>
     <link rel="stylesheet" href="/styles.css" />
   </head>
   <body>
@@ -11,106 +11,24 @@
       <section class="workspace">
         <header class="topbar">
           <div>
-            <h1>YouTube 视频与外挂字幕下载</h1>
-            <p>输入公开视频链接，保存视频文件和独立字幕文件。</p>
+            <h1>视频字幕工具</h1>
+            <p>下载 YouTube 视频字幕，或从本地视频画面中 OCR 提取字幕。</p>
           </div>
-          <span id="status" class="status">检查工具中</span>
         </header>
 
-        <form id="downloadForm" class="panel">
-          <label class="field fieldWide">
-            <span>YouTube 链接</span>
-            <input id="url" type="url" placeholder="https://www.youtube.com/watch?v=..." required />
-          </label>
-
-          <div class="controls">
-            <button class="secondary" type="button" id="fetchInfo">读取字幕</button>
-            <label class="field">
-              <span>字幕语言</span>
-              <select id="language">
-                <option value="zh-Hans">中文简体 zh-Hans</option>
-                <option value="zh-Hant">中文繁体 zh-Hant</option>
-                <option value="en">英文 en</option>
-                <option value="ko">韩文 ko</option>
-                <option value="ko-orig">韩文原文 ko-orig</option>
-                <option value="ja">日文 ja</option>
-              </select>
-            </label>
-            <label class="field">
-              <span>字幕格式</span>
-              <select id="subtitleFormat">
-                <option value="srt">SRT</option>
-                <option value="vtt">VTT</option>
-              </select>
-            </label>
-          </div>
-
-          <div class="options">
-            <label><input id="useAutoCaptions" type="checkbox" checked /> 没有官方字幕时使用自动字幕</label>
-            <label><input id="subtitleOnly" type="checkbox" /> 只下载外挂字幕</label>
-          </div>
-
-          <button class="primary" type="submit">开始下载</button>
-        </form>
-
-        <section class="result" id="videoInfo" hidden></section>
-        <section class="result" id="result" hidden></section>
-
-        <section class="panel ocrPanel">
-          <h2>画面字幕 OCR</h2>
-          <div class="ocrGrid">
-            <label class="field fieldWide">
-              <span>本地视频</span>
-              <input id="ocrVideoFile" type="file" accept="video/*" />
-            </label>
-            <label class="field">
-              <span>识别语言</span>
-              <select id="ocrLanguage">
-                <option value="kor+chi_sim+eng">韩文 + 简体中文 + 英文</option>
-                <option value="chi_sim+eng">简体中文 + 英文</option>
-                <option value="kor+eng">韩文 + 英文</option>
-                <option value="eng">英文</option>
-              </select>
-            </label>
-            <label class="field">
-              <span>识别间隔</span>
-              <select id="ocrInterval">
-                <option value="1">1 秒</option>
-                <option value="1.5">1.5 秒</option>
-                <option value="2">2 秒</option>
-                <option value="3">3 秒</option>
-              </select>
-            </label>
-            <label class="field">
-              <span>结束时间</span>
-              <input id="ocrEndTime" type="number" min="1" step="1" placeholder="默认全片" />
-            </label>
-          </div>
-
-          <div class="videoPicker">
-            <video id="ocrVideo" controls muted playsinline></video>
-            <canvas id="ocrOverlay"></canvas>
-          </div>
-
-          <div class="ocrPreviewBar">
-            <button class="secondary" type="button" id="ocrBack10">后退 10 秒</button>
-            <button class="secondary" type="button" id="ocrForward10">前进 10 秒</button>
-            <button class="secondary" type="button" id="ocrSelectMode">框选字幕区域</button>
-            <span id="ocrTimeReadout">00:00 / 00:00</span>
-          </div>
-
-          <div class="ocrActions">
-            <button class="secondary" type="button" id="ocrPreview">预览识别</button>
-            <button class="primary compactPrimary" type="button" id="ocrStart">生成 OCR 字幕</button>
-            <button class="danger" type="button" id="ocrCancel" disabled>取消 OCR</button>
-          </div>
-
-          <div class="ocrOutput" id="ocrOutput" hidden></div>
+        <section class="homeGrid">
+          <a class="toolCard" href="/download.html">
+            <span>下载</span>
+            <h2>YouTube 视频与字幕下载</h2>
+            <p>输入公开视频链接，读取可用字幕语言，下载视频文件或外挂字幕。</p>
+          </a>
+          <a class="toolCard" href="/ocr.html">
+            <span>OCR</span>
+            <h2>画面字幕 OCR 提取</h2>
+            <p>选择本地视频，框选字幕区域，只识别指定位置并导出 SRT。</p>
+          </a>
         </section>
       </section>
     </main>
-
-    <script src="https://cdn.jsdelivr.net/npm/tesseract.js@5/dist/tesseract.min.js"></script>
-    <script src="/app.js"></script>
   </body>
 </html>

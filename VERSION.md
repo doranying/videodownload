@@ -16,6 +16,7 @@ Recorded: 2026-05-18
 - Browser-side OCR workspace for local videos.
 - OCR workspace can load a local video, preview playback, jump 10 seconds, select a subtitle rectangle, sample frames, recognize only that region, merge repeated lines, and export SRT.
 - OCR tasks can be cancelled while preview recognition or full SRT generation is running.
+- The UI is split into separate pages: `/download.html` for YouTube downloads and `/ocr.html` for OCR subtitle extraction.
 
 ## Tested Case
 
