@@ -96,6 +96,7 @@ async function getVideoInfo(url) {
   const { stdout, stderr } = await runYtDlp([
     "--dump-single-json",
     "--skip-download",
+    "--ignore-no-formats",
     "--no-warnings",
     "--no-playlist",
     "--extractor-args",
@@ -234,6 +235,7 @@ async function writeSubtitleWithYtDlp({ url, language, subtitleFormat, useAutoCa
   const args = [
     "--no-playlist",
     "--skip-download",
+    "--ignore-no-formats",
     "--sub-langs",
     language,
     "--sub-format",
