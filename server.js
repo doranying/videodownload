@@ -10,6 +10,8 @@ const port = process.env.PORT || 4173;
 const downloadsDir = path.join(__dirname, "downloads");
 const ytDlpBin = path.join(__dirname, ".venv", "bin", "yt-dlp");
 const youtubeExtractorArgs = "youtube:player_client=android";
+const cookiePath =
+  process.env.YOUTUBE_COOKIES_PATH || path.join(__dirname, "cookies", "youtube.txt");
 
 fs.mkdirSync(downloadsDir, { recursive: true });
 
@@ -33,7 +35,10 @@ function runYtDlp(args, onLine) {
       return;
     }
 
-    const child = spawn(ytDlpBin, args, { cwd: downloadsDir });
+    const finalArgs = fs.existsSync(cookiePath)
+      ? ["--cookies", cookiePath, ...args]
+      : args;
+    const child = spawn(ytDlpBin, finalArgs, { cwd: downloadsDir });
     let stdout = "";
     let stderr = "";
 
