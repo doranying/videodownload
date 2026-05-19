@@ -168,6 +168,8 @@ app.post("/api/download", async (req, res) => {
     if (!subtitleOnly) {
       await runYtDlp([
         "--no-playlist",
+        "--extractor-args",
+        youtubeExtractorArgs,
         "--restrict-filenames",
         "--windows-filenames",
         "-f",
