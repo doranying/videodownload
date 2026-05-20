@@ -35,9 +35,10 @@ function runYtDlp(args, onLine) {
       return;
     }
 
+    const jsRuntimeArgs = ["--js-runtimes", `node:${process.execPath}`];
     const finalArgs = fs.existsSync(cookiePath)
-      ? ["--cookies", cookiePath, ...args]
-      : args;
+      ? ["--cookies", cookiePath, ...jsRuntimeArgs, ...args]
+      : [...jsRuntimeArgs, ...args];
     const child = spawn(ytDlpBin, finalArgs, { cwd: downloadsDir });
     let stdout = "";
     let stderr = "";
