@@ -8,14 +8,20 @@ const __dirname = path.dirname(fileURLToPath(import.meta.url));
 const app = express();
 const port = process.env.PORT || 4173;
 const downloadsDir = path.join(__dirname, "downloads");
+const ocrTempDir = path.join(__dirname, "tmp", "ocr");
 const ytDlpBin = path.join(__dirname, ".venv", "bin", "yt-dlp");
+const pythonBin = path.join(__dirname, ".venv", "bin", "python");
+const paddleOcrScript = path.join(__dirname, "scripts", "paddle_ocr.py");
 const youtubeExtractorArgs = "youtube:player_client=tv";
 const cookiePath =
   process.env.YOUTUBE_COOKIES_PATH || path.join(__dirname, "cookies", "youtube.txt");
+let paddleWorker = null;
+let paddleRequestId = 0;
 
 fs.mkdirSync(downloadsDir, { recursive: true });
+fs.mkdirSync(ocrTempDir, { recursive: true });
 
-app.use(express.json({ limit: "1mb" }));
+app.use(express.json({ limit: "20mb" }));
 app.use(express.static(path.join(__dirname, "public")));
 app.use("/downloads", express.static(downloadsDir));
 
@@ -71,6 +77,100 @@ function runYtDlp(args, onLine) {
   });
 }
 
+function runPaddleOcr(imagePath, language) {
+  return new Promise((resolve, reject) => {
+    if (!fs.existsSync(pythonBin)) {
+      reject(new Error("服务器还没有安装 Python OCR 环境，请先运行部署安装步骤。"));
+      return;
+    }
+    if (!fs.existsSync(paddleOcrScript)) {
+      reject(new Error("服务器缺少 PaddleOCR 识别脚本。"));
+      return;
+    }
+
+    const worker = getPaddleWorker();
+    const id = String(++paddleRequestId);
+    const timer = setTimeout(() => {
+      worker.pending.delete(id);
+      reject(new Error("PaddleOCR 识别超时，请缩小字幕框选区域或稍后重试。"));
+    }, 120000);
+
+    worker.pending.set(id, {
+      resolve: (value) => {
+        clearTimeout(timer);
+        resolve(value);
+      },
+      reject: (error) => {
+        clearTimeout(timer);
+        reject(error);
+      }
+    });
+    worker.child.stdin.write(`${JSON.stringify({ id, imagePath, language })}\n`);
+  });
+}
+
+function getPaddleWorker() {
+  if (paddleWorker && !paddleWorker.closed) return paddleWorker;
+
+  const child = spawn(pythonBin, [paddleOcrScript, "--server"], {
+    cwd: __dirname,
+    env: { ...process.env, PYTHONIOENCODING: "utf-8" }
+  });
+  const worker = {
+    child,
+    pending: new Map(),
+    stdout: "",
+    stderr: "",
+    closed: false
+  };
+
+  child.stdout.on("data", (chunk) => {
+    worker.stdout += chunk.toString();
+    const lines = worker.stdout.split("\n");
+    worker.stdout = lines.pop() || "";
+    for (const line of lines) {
+      if (!line.trim()) continue;
+      let message;
+      try {
+        message = JSON.parse(line);
+      } catch {
+        continue;
+      }
+      const pending = worker.pending.get(message.id);
+      if (!pending) continue;
+      worker.pending.delete(message.id);
+      if (message.error) {
+        pending.reject(new Error(message.error));
+      } else {
+        pending.resolve(message.result);
+      }
+    }
+  });
+
+  child.stderr.on("data", (chunk) => {
+    worker.stderr += chunk.toString();
+    if (worker.stderr.length > 4000) worker.stderr = worker.stderr.slice(-4000);
+  });
+
+  const closeWorker = () => {
+    worker.closed = true;
+    for (const pending of worker.pending.values()) {
+      pending.reject(new Error(worker.stderr || "PaddleOCR 进程已退出。"));
+    }
+    worker.pending.clear();
+    if (paddleWorker === worker) paddleWorker = null;
+  };
+
+  child.on("error", closeWorker);
+  child.on("close", closeWorker);
+  paddleWorker = worker;
+  return worker;
+}
+
+process.on("exit", () => {
+  paddleWorker?.child.kill();
+});
+
 function collectFilesBefore() {
   return new Map(
     fs.readdirSync(downloadsDir).map((name) => {
@@ -122,8 +222,43 @@ async function getVideoInfo(url) {
 app.get("/api/health", (_req, res) => {
   res.json({
     ok: true,
-    downloaderReady: fs.existsSync(ytDlpBin)
+    downloaderReady: fs.existsSync(ytDlpBin),
+    paddleOcrReady: fs.existsSync(pythonBin) && fs.existsSync(paddleOcrScript) && isPaddleOcrInstalled()
   });
+});
+
+app.post("/api/ocr", async (req, res) => {
+  const { image, language = "kor" } = req.body || {};
+  if (typeof image !== "string" || !image.startsWith("data:image/")) {
+    res.status(400).json({ error: "没有收到可识别的字幕截图。" });
+    return;
+  }
+
+  const match = image.match(/^data:image\/(png|jpeg|jpg);base64,(.+)$/);
+  if (!match) {
+    res.status(400).json({ error: "截图格式不正确，请重新框选后再试。" });
+    return;
+  }
+
+  const buffer = Buffer.from(match[2], "base64");
+  if (!buffer.length || buffer.length > 12 * 1024 * 1024) {
+    res.status(400).json({ error: "字幕截图太大，请缩小框选区域后再试。" });
+    return;
+  }
+
+  const extension = match[1] === "jpg" ? "jpeg" : match[1];
+  const fileName = `ocr-${Date.now()}-${Math.random().toString(16).slice(2)}.${extension}`;
+  const imagePath = path.join(ocrTempDir, fileName);
+
+  try {
+    fs.writeFileSync(imagePath, buffer);
+    const result = await runPaddleOcr(imagePath, normalizeOcrLanguage(language));
+    res.json(result);
+  } catch (error) {
+    res.status(500).json({ error: cleanError(error.message) });
+  } finally {
+    fs.rm(imagePath, { force: true }, () => {});
+  }
 });
 
 app.post("/api/info", async (req, res) => {
@@ -436,6 +571,22 @@ function normalizeSubtitleLanguage(language) {
     "zh-TW": "zh-Hant"
   };
   return aliases[language] || language;
+}
+
+function normalizeOcrLanguage(language) {
+  const parts = String(language || "").split("+");
+  if (parts.includes("kor")) return "korean";
+  if (parts.includes("chi_sim")) return "ch";
+  if (parts.includes("eng")) return "en";
+  return "korean";
+}
+
+function isPaddleOcrInstalled() {
+  const libDir = path.join(__dirname, ".venv", "lib");
+  if (!fs.existsSync(libDir)) return false;
+  return fs
+    .readdirSync(libDir)
+    .some((pythonDir) => fs.existsSync(path.join(libDir, pythonDir, "site-packages", "paddleocr")));
 }
 
 function cleanError(message) {

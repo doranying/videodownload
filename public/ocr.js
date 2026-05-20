@@ -124,6 +124,8 @@ ocr.start.addEventListener("click", async () => {
   }
 });
 
+checkOcrHealth();
+
 function resizeOverlay() {
   const rect = ocr.overlay.getBoundingClientRect();
   ocr.overlay.width = Math.max(1, Math.round(rect.width));
@@ -165,9 +167,6 @@ function pointerPoint(event) {
 }
 
 function requireOcrReady() {
-  if (!window.Tesseract) {
-    throw new Error("OCR 组件还没有加载完成，请稍后再试。");
-  }
   if (!ocr.video.src || !Number.isFinite(ocr.video.duration)) {
     throw new Error("请先选择一个本地视频。");
   }
@@ -188,10 +187,26 @@ function setOcrBusy(isBusy, text) {
   if (text) statusEl.textContent = text;
 }
 
+async function checkOcrHealth() {
+  try {
+    const response = await fetch("/api/health");
+    const data = await response.json();
+    if (data.paddleOcrReady) {
+      statusEl.textContent = "PaddleOCR 就绪";
+    } else {
+      statusEl.textContent = "服务器 OCR 未安装";
+    }
+  } catch {
+    statusEl.textContent = "OCR 就绪";
+  }
+}
+
 function createOcrJob() {
   const job = {
     cancelled: false,
     worker: null,
+    abortController: null,
+    serverOcrFailed: false,
     language: ocr.language.value
   };
   ocr.activeJob = job;
@@ -202,6 +217,10 @@ async function finishOcrJob(job) {
   if (job.worker) {
     await job.worker.terminate().catch(() => {});
     job.worker = null;
+  }
+  if (job.abortController) {
+    job.abortController.abort();
+    job.abortController = null;
   }
   if (ocr.activeJob === job) {
     ocr.activeJob = null;
@@ -217,10 +236,17 @@ function cancelOcrJob(message) {
     job.worker.terminate().catch(() => {});
     job.worker = null;
   }
+  if (job.abortController) {
+    job.abortController.abort();
+    job.abortController = null;
+  }
 }
 
 async function getOcrWorker(job) {
   throwIfCancelled(job);
+  if (!window.Tesseract) {
+    throw new Error("浏览器 OCR 组件还没有加载完成，请稍后再试。");
+  }
   if (!job.worker) {
     statusEl.textContent = "加载 OCR 模型中";
     job.worker = await Tesseract.createWorker(job.language, 1, {
@@ -252,11 +278,52 @@ function throwIfCancelled(job) {
 
 async function recognizeCurrentFrame(job) {
   const canvas = captureSelection();
+  if (!job.serverOcrFailed) {
+    try {
+      statusEl.textContent = "服务器 PaddleOCR 识别中";
+      const text = await recognizeWithServer(canvas, job);
+      return cleanOcrText(text, job.language);
+    } catch (error) {
+      throwIfCancelled(job);
+      job.serverOcrFailed = true;
+      statusEl.textContent = "服务器 OCR 不可用，改用浏览器 OCR";
+      if (!window.Tesseract) {
+        throw error;
+      }
+    }
+  }
+
+  const browserCanvas = captureSelection({ threshold: true });
   const worker = await getOcrWorker(job);
   throwIfCancelled(job);
-  const result = await worker.recognize(canvas);
+  const result = await worker.recognize(browserCanvas);
   throwIfCancelled(job);
   return cleanOcrText(result.data.text, job.language);
+}
+
+async function recognizeWithServer(canvas, job) {
+  const controller = new AbortController();
+  job.abortController = controller;
+  try {
+    const response = await fetch("/api/ocr", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({
+        image: canvas.toDataURL("image/png"),
+        language: job.language
+      }),
+      signal: controller.signal
+    });
+    const data = await response.json().catch(() => ({}));
+    if (!response.ok) {
+      throw new Error(data.error || "服务器 OCR 识别失败。");
+    }
+    return data.text || "";
+  } finally {
+    if (job.abortController === controller) {
+      job.abortController = null;
+    }
+  }
 }
 
 async function buildOcrCues(job) {
@@ -297,10 +364,10 @@ function formatClock(seconds) {
   return `${String(minutes).padStart(2, "0")}:${String(secs).padStart(2, "0")}`;
 }
 
-function captureSelection() {
+function captureSelection(options = {}) {
   const crop = selectionToVideoPixels();
   const canvas = document.createElement("canvas");
-  const scale = 2;
+  const scale = 3;
   canvas.width = Math.max(1, Math.round(crop.w * scale));
   canvas.height = Math.max(1, Math.round(crop.h * scale));
   const context = canvas.getContext("2d");
@@ -315,7 +382,9 @@ function captureSelection() {
     canvas.width,
     canvas.height
   );
-  boostContrast(context, canvas.width, canvas.height);
+  if (options.threshold) {
+    boostContrast(context, canvas.width, canvas.height);
+  }
   return canvas;
 }
 
