@@ -169,7 +169,7 @@ app.post("/api/download", async (req, res) => {
 
   const before = collectFilesBefore();
   const subtitleLanguage = normalizeSubtitleLanguage(language);
-  const output = "%(title).180B [%(id)s].%(ext)s";
+  const output = `%(title).180B [%(id)s].${videoQualityLabel(videoQuality)}.%(ext)s`;
 
   try {
     if (!subtitleOnly) {
@@ -225,6 +225,12 @@ function videoFormatForQuality(quality) {
     `b[height<=${height}][ext=mp4]`,
     `b[height<=${height}]`
   ].join("/");
+}
+
+function videoQualityLabel(quality) {
+  if (quality === "best") return "best";
+  const height = Number(quality);
+  return [360, 480, 720, 1080].includes(height) ? `${height}p` : "720p";
 }
 
 async function buildNoFileDiagnosis(url, language) {
