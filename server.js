@@ -35,7 +35,12 @@ function runYtDlp(args, onLine) {
       return;
     }
 
-    const jsRuntimeArgs = ["--js-runtimes", `node:${process.execPath}`];
+    const jsRuntimeArgs = [
+      "--js-runtimes",
+      `node:${process.execPath}`,
+      "--remote-components",
+      "ejs:github"
+    ];
     const finalArgs = fs.existsSync(cookiePath)
       ? ["--cookies", cookiePath, ...jsRuntimeArgs, ...args]
       : [...jsRuntimeArgs, ...args];
