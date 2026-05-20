@@ -7,8 +7,12 @@ apt-get update
 apt-get install -y \
   ca-certificates \
   curl \
+  ffmpeg \
   git \
   nginx \
+  libgl1 \
+  libglib2.0-0 \
+  libgomp1 \
   python3 \
   python3-venv \
   python3-pip \

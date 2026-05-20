@@ -42,9 +42,10 @@ cd videodownload
 安装项目依赖：
 
 ```bash
+sudo apt-get install -y ffmpeg
 npm install --omit=dev
 python3 -m venv .venv
-.venv/bin/python -m pip install --upgrade pip yt-dlp
+.venv/bin/python -m pip install --upgrade pip yt-dlp paddlepaddle paddleocr
 ```
 
 启动服务：
@@ -128,6 +129,7 @@ cd /opt/videodownload
 git pull
 npm install --omit=dev
 .venv/bin/python -m pip install --upgrade yt-dlp
+.venv/bin/python -m pip install --upgrade paddlepaddle paddleocr
 pm2 restart videodownload
 ```
 
@@ -157,3 +159,8 @@ pm2 restart videodownload
 /opt/videodownload/.venv/bin/yt-dlp --version
 ```
 
+检查 PaddleOCR：
+
+```bash
+/opt/videodownload/.venv/bin/python -c "from paddleocr import PaddleOCR; print('PaddleOCR OK')"
+```
