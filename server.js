@@ -158,7 +158,8 @@ app.post("/api/download", async (req, res) => {
     language = "zh-Hans",
     useAutoCaptions = true,
     subtitleOnly = false,
-    subtitleFormat = "srt"
+    subtitleFormat = "srt",
+    videoQuality = "720"
   } = req.body;
 
   if (!isYoutubeUrl(url)) {
@@ -179,7 +180,9 @@ app.post("/api/download", async (req, res) => {
         "--restrict-filenames",
         "--windows-filenames",
         "-f",
-        "b[ext=mp4]/b",
+        videoFormatForQuality(videoQuality),
+        "--merge-output-format",
+        "mp4",
         "-o",
         output,
         url
@@ -200,6 +203,29 @@ app.post("/api/download", async (req, res) => {
     res.status(500).json({ error: cleanError(error.message) });
   }
 });
+
+function videoFormatForQuality(quality) {
+  if (quality === "best") {
+    return [
+      "bv*[vcodec^=avc1]+ba[ext=m4a]",
+      "bv*[ext=mp4]+ba[ext=m4a]",
+      "b[ext=mp4]",
+      "b"
+    ].join("/");
+  }
+
+  const height = Number(quality);
+  if (![360, 480, 720, 1080].includes(height)) {
+    return videoFormatForQuality("720");
+  }
+
+  return [
+    `bv*[height<=${height}][vcodec^=avc1]+ba[ext=m4a]`,
+    `bv*[height<=${height}][ext=mp4]+ba[ext=m4a]`,
+    `b[height<=${height}][ext=mp4]`,
+    `b[height<=${height}]`
+  ].join("/");
+}
 
 async function buildNoFileDiagnosis(url, language) {
   try {

@@ -9,7 +9,8 @@ const fields = {
   language: document.querySelector("#language"),
   useAutoCaptions: document.querySelector("#useAutoCaptions"),
   subtitleOnly: document.querySelector("#subtitleOnly"),
-  subtitleFormat: document.querySelector("#subtitleFormat")
+  subtitleFormat: document.querySelector("#subtitleFormat"),
+  videoQuality: document.querySelector("#videoQuality")
 };
 
 function payload() {
@@ -18,15 +19,21 @@ function payload() {
     language: fields.language.value,
     useAutoCaptions: fields.useAutoCaptions.checked,
     subtitleOnly: fields.subtitleOnly.checked,
-    subtitleFormat: fields.subtitleFormat.value
+    subtitleFormat: fields.subtitleFormat.value,
+    videoQuality: fields.videoQuality.value
   };
 }
 
 function setBusy(isBusy, text) {
   fetchInfoButton.disabled = isBusy;
   form.querySelector(".primary").disabled = isBusy;
+  fields.videoQuality.disabled = isBusy || fields.subtitleOnly.checked;
   if (text) statusEl.textContent = text;
 }
+
+fields.subtitleOnly.addEventListener("change", () => {
+  fields.videoQuality.disabled = fields.subtitleOnly.checked;
+});
 
 async function checkHealth() {
   const response = await fetch("/api/health");
